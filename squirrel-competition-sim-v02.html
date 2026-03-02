@@ -1,0 +1,1295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Woodland Competition Simulator</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700;900&family=Crimson+Pro:ital,wght@0,300;0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bark: #3d2b1f;
+    --bark-light: #5c4033;
+    --moss: #4a6741;
+    --moss-light: #6b9463;
+    --moss-dark: #2d4028;
+    --acorn: #c07832;
+    --acorn-light: #e09a50;
+    --cream: #f5ead8;
+    --cream-dark: #e8d5b5;
+    --red-sq: #c0392b;
+    --red-sq-light: #e74c3c;
+    --grey-sq: #7f8c8d;
+    --grey-sq-light: #bdc3c7;
+    --fox-col: #e67e22;
+    --hawk-col: #8e44ad;
+    --food-col: #27ae60;
+    --shelter-col: #795548;
+    --open-col: #a8c090;
+    --shadow: rgba(0,0,0,0.35);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bark);
+    font-family: 'Crimson Pro', Georgia, serif;
+    color: var(--cream);
+    min-height: 100vh;
+    overflow-x: hidden;
+    background-image:
+      radial-gradient(ellipse at 20% 20%, rgba(74,103,65,0.3) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 80%, rgba(61,43,31,0.8) 0%, transparent 50%);
+  }
+
+  header {
+    text-align: center;
+    padding: 18px 20px 10px;
+    border-bottom: 2px solid var(--bark-light);
+    position: relative;
+  }
+  header::before {
+    content: '🌳';
+    font-size: 1.8rem;
+    position: absolute;
+    left: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  header::after {
+    content: '🌳';
+    font-size: 1.8rem;
+    position: absolute;
+    right: 30px;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 900;
+    color: var(--acorn-light);
+    letter-spacing: 1px;
+    text-shadow: 2px 2px 6px rgba(0,0,0,0.5);
+  }
+  .subtitle {
+    font-size: 1rem;
+    color: var(--cream-dark);
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  .app {
+    display: grid;
+    grid-template-columns: 260px 1fr 220px;
+    gap: 12px;
+    padding: 12px;
+    max-width: 1400px;
+    margin: 0 auto;
+  }
+
+  /* ---- PANELS ---- */
+  .panel {
+    background: linear-gradient(160deg, var(--bark-light), var(--bark));
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: 14px;
+    box-shadow: 0 4px 20px var(--shadow);
+  }
+  .panel-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.05rem;
+    color: var(--acorn-light);
+    border-bottom: 1px solid var(--bark-light);
+    padding-bottom: 6px;
+    margin-bottom: 10px;
+    font-weight: 700;
+  }
+
+  /* ---- CONTROLS ---- */
+  .control-group { margin-bottom: 12px; }
+  .control-label {
+    font-size: 0.82rem;
+    color: var(--cream-dark);
+    margin-bottom: 3px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .control-label span { color: var(--acorn-light); font-weight: 600; font-size: 0.9rem; }
+
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 5px;
+    border-radius: 3px;
+    background: var(--bark);
+    outline: none;
+    cursor: pointer;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: var(--acorn-light);
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+    transition: transform 0.1s;
+  }
+  input[type=range]::-webkit-slider-thumb:hover { transform: scale(1.2); }
+
+  select {
+    width: 100%;
+    background: var(--bark);
+    color: var(--cream);
+    border: 1px solid var(--bark-light);
+    border-radius: 6px;
+    padding: 6px 8px;
+    font-family: 'Crimson Pro', serif;
+    font-size: 0.9rem;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+    font-size: 0.85rem;
+    color: var(--cream-dark);
+  }
+  .toggle {
+    position: relative; width: 40px; height: 20px;
+    background: var(--bark); border-radius: 10px;
+    cursor: pointer; transition: background 0.2s;
+    border: 1px solid var(--bark-light);
+  }
+  .toggle.on { background: var(--moss); }
+  .toggle::after {
+    content: ''; position: absolute;
+    width: 16px; height: 16px; border-radius: 50%;
+    background: var(--cream); top: 1px; left: 1px;
+    transition: left 0.2s;
+  }
+  .toggle.on::after { left: 21px; }
+
+  /* ---- BUTTONS ---- */
+  .btn-row { display: flex; gap: 6px; margin-top: 10px; }
+  button {
+    flex: 1;
+    padding: 9px 8px;
+    border: none;
+    border-radius: 8px;
+    font-family: 'Playfair Display', serif;
+    font-size: 0.85rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.15s;
+    letter-spacing: 0.5px;
+  }
+  .btn-run { background: var(--moss); color: var(--cream); }
+  .btn-run:hover { background: var(--moss-light); transform: translateY(-1px); }
+  .btn-pause { background: var(--acorn); color: var(--cream); }
+  .btn-pause:hover { background: var(--acorn-light); transform: translateY(-1px); }
+  .btn-reset { background: var(--bark-light); color: var(--cream); border: 1px solid rgba(255,255,255,0.1); }
+  .btn-reset:hover { background: #7a5845; transform: translateY(-1px); }
+
+  .speed-row {
+    display: flex; align-items: center; gap: 8px;
+    margin-top: 8px; font-size: 0.8rem; color: var(--cream-dark);
+  }
+  .speed-row input { flex: 1; }
+
+  /* ---- CENTRE GRID AREA ---- */
+  .centre-col { display: flex; flex-direction: column; gap: 10px; }
+
+  .grid-wrapper {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 6px 30px var(--shadow);
+    border: 2px solid var(--moss-dark);
+  }
+  canvas#gridCanvas {
+    display: block;
+    width: 100%;
+    image-rendering: pixelated;
+  }
+
+  /* overlay for generation */
+  .gen-badge {
+    position: absolute; top: 10px; left: 10px;
+    background: rgba(0,0,0,0.6);
+    color: var(--acorn-light);
+    font-family: 'Playfair Display', serif;
+    font-size: 0.85rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+    backdrop-filter: blur(4px);
+    border: 1px solid rgba(255,255,255,0.1);
+  }
+
+  /* ---- CHART ---- */
+  .chart-panel { padding: 12px 14px; }
+  canvas#popChart {
+    width: 100% !important;
+    border-radius: 8px;
+  }
+
+  /* ---- RIGHT PANEL ---- */
+  .legend { margin-bottom: 12px; }
+  .legend-item {
+    display: flex; align-items: center; gap: 8px;
+    margin-bottom: 7px; font-size: 0.85rem; color: var(--cream-dark);
+  }
+  .legend-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    flex-shrink: 0;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 11px;
+  }
+
+  .stat-box {
+    background: rgba(0,0,0,0.25);
+    border-radius: 8px;
+    padding: 8px 10px;
+    margin-bottom: 8px;
+  }
+  .stat-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 0.8rem;
+    color: var(--acorn-light);
+    margin-bottom: 5px;
+    font-weight: 700;
+  }
+  .stat-row {
+    display: flex; justify-content: space-between;
+    font-size: 0.8rem;
+    color: var(--cream-dark);
+    margin-bottom: 2px;
+  }
+  .stat-val { color: var(--cream); font-weight: 600; }
+
+  .info-box {
+    background: rgba(0,0,0,0.2);
+    border-left: 3px solid var(--moss);
+    padding: 8px 10px;
+    border-radius: 0 6px 6px 0;
+    font-size: 0.78rem;
+    color: var(--cream-dark);
+    font-style: italic;
+    line-height: 1.45;
+    margin-top: 8px;
+  }
+
+  /* extinct badge */
+  .extinct { color: #e74c3c !important; font-style: italic; }
+  .dominant { color: var(--moss-light) !important; font-weight: 700; }
+
+  @media (max-width: 900px) {
+    .app { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Woodland Competition Simulator</h1>
+  <div class="subtitle">Red vs Grey Squirrel · Predator Pressure · Habitat & Adaptation</div>
+</header>
+
+<div class="app">
+
+  <!-- LEFT: CONTROLS -->
+  <div class="panel" id="controlPanel">
+    <div class="panel-title">🎛️ Setup</div>
+
+    <div class="control-group">
+      <div class="control-label">Environment <span id="envLabel">Ancient Woodland</span></div>
+      <select id="envSelect">
+        <option value="woodland">Ancient Woodland</option>
+        <option value="parkland">Fragmented Parkland</option>
+        <option value="urban">Urban Fringe</option>
+      </select>
+    </div>
+
+    <div class="control-group">
+      <div class="control-label">🐿️ Red Squirrels <span id="redVal">10</span></div>
+      <input type="range" id="redSlider" min="1" max="30" value="10">
+    </div>
+    <div class="control-group">
+      <div class="control-label">🐿️ Grey Squirrels <span id="greyVal">10</span></div>
+      <input type="range" id="greySlider" min="1" max="30" value="10">
+    </div>
+    <div class="control-group">
+      <div class="control-label">🦊 Foxes <span id="foxVal">2</span></div>
+      <input type="range" id="foxSlider" min="0" max="8" value="2">
+    </div>
+    <div class="control-group">
+      <div class="control-label">🦅 Sparrowhawks <span id="hawkVal">2</span></div>
+      <input type="range" id="hawkSlider" min="0" max="8" value="2">
+    </div>
+
+    <div class="panel-title" style="margin-top:10px;">⚗️ Modifiers</div>
+    <div class="toggle-row">
+      <span>Squirrelpox pressure</span>
+      <div class="toggle on" id="poxToggle"></div>
+    </div>
+    <div class="toggle-row">
+      <span>Seasonal food cycles</span>
+      <div class="toggle on" id="seasonToggle"></div>
+    </div>
+
+    <div class="btn-row">
+      <button class="btn-run" id="runBtn">▶ Run</button>
+      <button class="btn-pause" id="pauseBtn">⏸ Pause</button>
+      <button class="btn-reset" id="resetBtn">↺ Reset</button>
+    </div>
+    <div class="speed-row">
+      <span>Speed:</span>
+      <input type="range" id="speedSlider" min="1" max="10" value="4">
+      <span id="speedLabel">4</span>
+    </div>
+  </div>
+
+  <!-- CENTRE: GRID + CHART -->
+  <div class="centre-col">
+    <div class="grid-wrapper">
+      <canvas id="gridCanvas"></canvas>
+      <div class="gen-badge" id="genBadge">Turn 0</div>
+    </div>
+    <div class="panel chart-panel">
+      <div class="panel-title">📈 Population over Time</div>
+      <canvas id="popChart" height="130"></canvas>
+    </div>
+  </div>
+
+  <!-- RIGHT: LEGEND + STATS -->
+  <div class="panel">
+    <div class="panel-title">🗺️ Legend</div>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#c0392b;border-radius:50%;"></div> Red Squirrel</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#7f8c8d;border-radius:50%;"></div> Grey Squirrel</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#e67e22;border-radius:50%;"></div> Fox</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8e44ad;border-radius:50%;"></div> Sparrowhawk</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#1a7a3a;border-radius:3px;outline:2px solid #f5c518;outline-offset:-2px;"></div> Food (acorn)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#8d6e63;border-radius:3px;"></div> Shelter (den)</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#7a9e6e;border-radius:3px;"></div> Open ground</div>
+    </div>
+
+    <div class="panel-title">📊 Live Stats</div>
+    <div class="stat-box">
+      <div class="stat-title">🐿️ Red Squirrel</div>
+      <div class="stat-row"><span>Population</span><span class="stat-val" id="statRed">—</span></div>
+      <div class="stat-row"><span>Births</span><span class="stat-val" id="statRedBirth">—</span></div>
+      <div class="stat-row"><span>Deaths</span><span class="stat-val" id="statRedDeath">—</span></div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-title">🐿️ Grey Squirrel</div>
+      <div class="stat-row"><span>Population</span><span class="stat-val" id="statGrey">—</span></div>
+      <div class="stat-row"><span>Births</span><span class="stat-val" id="statGreyBirth">—</span></div>
+      <div class="stat-row"><span>Deaths</span><span class="stat-val" id="statGreyDeath">—</span></div>
+    </div>
+    <div class="stat-box">
+      <div class="stat-title">🦊 Fox &nbsp;|&nbsp; 🦅 Hawk</div>
+      <div class="stat-row"><span>Foxes</span><span class="stat-val" id="statFox">—</span></div>
+      <div class="stat-row"><span>Hawks</span><span class="stat-val" id="statHawk">—</span></div>
+      <div class="stat-row"><span>Kills this turn</span><span class="stat-val" id="statKills">—</span></div>
+    </div>
+
+    <div class="info-box" id="infoBox">
+      Adjust the sliders and select an environment, then press <strong>Run</strong> to start the simulation.
+    </div>
+  </div>
+
+</div>
+
+<script>
+// ─────────────────────────────────────────────
+//  CONFIG
+// ─────────────────────────────────────────────
+const COLS = 20, ROWS = 15;
+const CELL = 22; // px per cell in canvas
+
+// Tile types
+const T_OPEN = 0, T_FOOD = 1, T_SHELTER = 2, T_TREE = 3;
+
+// Species
+const RED = 'red', GREY = 'grey', FOX = 'fox', HAWK = 'hawk';
+
+// Colour palette for chart
+const CHART_COLORS = {
+  [RED]:  '#e74c3c',
+  [GREY]: '#95a5a6',
+  [FOX]:  '#e67e22',
+  [HAWK]: '#9b59b6',
+};
+
+// Environment presets: {foodDensity, shelterDensity, treeDensity, redBonus}
+const ENVS = {
+  // Woodland: dense food+shelter, reds get home-turf repro bonus, low competition pressure
+  woodland: { foodDensity: 0.18, shelterDensity: 0.12, treeDensity: 0.10, redBonus: 1.4,
+              poxMult: 0.5, compChance: 0.45, compDrain: 1.2, name: 'Ancient Woodland' },
+  // Parkland: sparse shelter forces contact, full pox pressure, grey dominates competition
+  parkland: { foodDensity: 0.10, shelterDensity: 0.06, treeDensity: 0.04, redBonus: 1.0,
+              poxMult: 1.4, compChance: 0.80, compDrain: 2.5, name: 'Fragmented Parkland' },
+  // Urban: almost no shelter, predation overwhelms both species
+  urban:    { foodDensity: 0.08, shelterDensity: 0.03, treeDensity: 0.01, redBonus: 0.7,
+              poxMult: 1.0, compChance: 0.65, compDrain: 1.5, name: 'Urban Fringe' },
+};
+
+// Species base stats
+const SPECIES_STATS = {
+  [RED]:  { speed: 1.0, stealth: 0.75, reproRate: 18, energyEff: 1.1, maxEnergy: 14, poxImmune: false, symbol: '🐿', ground: true,  air: false },
+  [GREY]: { speed: 1.2, stealth: 0.45, reproRate: 12, energyEff: 1.5, maxEnergy: 16, poxImmune: true,  symbol: '🐿', ground: true,  air: false },
+  [FOX]:  { speed: 1.4, stealth: 0.5,  reproRate: 40, energyEff: 1.0, maxEnergy: 20, poxImmune: true,  symbol: '🦊', ground: true,  air: false },
+  [HAWK]: { speed: 1.8, stealth: 0.9,  reproRate: 60, energyEff: 1.0, maxEnergy: 22, poxImmune: true,  symbol: '🦅', ground: false, air: true  },
+};
+
+// ─────────────────────────────────────────────
+//  STATE
+// ─────────────────────────────────────────────
+let grid = [];        // 2D array of tile type
+let agents = [];      // flat array of agent objects
+let turn = 0;
+let running = false;
+let loopTimeout = null;
+let poxOn = true;
+let seasonOn = true;
+let season = 0;       // 0-3
+
+let popHistory = { [RED]: [], [GREY]: [], [FOX]: [], [HAWK]: [] };
+let totalBirths = { [RED]: 0, [GREY]: 0 };
+let totalDeaths = { [RED]: 0, [GREY]: 0 };
+let killsThisTurn = 0;
+
+let currentEnv = 'woodland';
+
+// Chart
+let chartCtx, chartData;
+
+// ─────────────────────────────────────────────
+//  INIT
+// ─────────────────────────────────────────────
+function initGrid(env) {
+  const e = ENVS[env];
+  const newGrid = [];
+  for (let r = 0; r < ROWS; r++) {
+    newGrid[r] = [];
+    for (let c = 0; c < COLS; c++) {
+      const rnd = Math.random();
+      if (rnd < e.treeDensity) newGrid[r][c] = T_TREE;
+      else if (rnd < e.treeDensity + e.shelterDensity) newGrid[r][c] = T_SHELTER;
+      else if (rnd < e.treeDensity + e.shelterDensity + e.foodDensity) newGrid[r][c] = T_FOOD;
+      else newGrid[r][c] = T_OPEN;
+    }
+  }
+  grid = newGrid;
+}
+
+function makeAgent(species, r, c) {
+  const s = SPECIES_STATS[species];
+  const px = c * CELL + CELL / 2;
+  const py = r * CELL + CELL / 2;
+  return {
+    id: Math.random().toString(36).slice(2),
+    species,
+    r, c,
+    px, py,
+    targetPx: px,
+    targetPy: py,
+    satiatedTimer: 0,
+    energy: s.maxEnergy * 0.7 + Math.random() * s.maxEnergy * 0.3,
+    reproTimer: Math.floor(Math.random() * s.reproRate),
+    alive: true,
+    sheltered: false,
+  };
+}
+
+function randomEmptyCell() {
+  let r, c, attempts = 0;
+  do {
+    r = Math.floor(Math.random() * ROWS);
+    c = Math.floor(Math.random() * COLS);
+    attempts++;
+  } while (attempts < 200 && (!inBounds(r, c) || grid[r][c] === T_TREE));
+  return { r, c };
+}
+
+function initAgents() {
+  agents = [];
+  totalBirths = { [RED]: 0, [GREY]: 0 };
+  totalDeaths = { [RED]: 0, [GREY]: 0 };
+  killsThisTurn = 0;
+
+  const counts = {
+    [RED]:  parseInt(document.getElementById('redSlider').value),
+    [GREY]: parseInt(document.getElementById('greySlider').value),
+    [FOX]:  parseInt(document.getElementById('foxSlider').value),
+    [HAWK]: parseInt(document.getElementById('hawkSlider').value),
+  };
+  for (const [sp, n] of Object.entries(counts)) {
+    for (let i = 0; i < n; i++) {
+      const { r, c } = randomEmptyCell();
+      agents.push(makeAgent(sp, r, c));
+    }
+  }
+}
+
+function initPopHistory() {
+  popHistory = { [RED]: [], [GREY]: [], [FOX]: [], [HAWK]: [] };
+}
+
+// ─────────────────────────────────────────────
+//  SIMULATION STEP
+// ─────────────────────────────────────────────
+function step() {
+  killsThisTurn = 0;
+  turn++;
+  if (seasonOn) season = Math.floor((turn % 40) / 10); // 0=spring,1=summer,2=autumn,3=winter
+
+  const foodMult = seasonOn ? [1.2, 1.0, 0.8, 0.4][season] : 1.0;
+  const newAgents = [];
+
+  // Build lookup: cell -> agents
+  const cellMap = {};
+  for (const a of agents) {
+    const key = `${a.r},${a.c}`;
+    if (!cellMap[key]) cellMap[key] = [];
+    cellMap[key].push(a);
+  }
+
+  // ---- Move ----
+  for (const a of agents) {
+    if (!a.alive) continue;
+    if (a.species === FOX || a.species === HAWK) {
+      moveTowardsPrey(a, cellMap);
+    } else {
+      moveSquirrel(a, cellMap);
+    }
+    // Update pixel target so renderer glides toward new grid position
+    a.targetPx = a.c * CELL + CELL / 2;
+    a.targetPy = a.r * CELL + CELL / 2;
+  }
+
+  // ---- Energy & feeding ----
+  for (const a of agents) {
+    if (!a.alive) continue;
+    const s = SPECIES_STATS[a.species];
+    // Base energy drain
+    let drain = 1.0;
+    if (season === 3) drain = 1.5; // winter harder
+
+    // Squirrelpox penalty: red near grey
+    if (poxOn && a.species === RED) {
+      const key = `${a.r},${a.c}`;
+      const cell = cellMap[key] || [];
+      const greyNearby = cell.some(b => b.species === GREY && b.alive);
+      // Also check adjacent
+      let adj = false;
+      for (const [dr, dc] of [[-1,0],[1,0],[0,-1],[0,1]]) {
+        const k2 = `${a.r+dr},${a.c+dc}`;
+        if ((cellMap[k2]||[]).some(b => b.species === GREY && b.alive)) { adj = true; break; }
+      }
+      const poxMult = ENVS[currentEnv].poxMult ?? 1.0;
+      if (greyNearby || adj) drain += 0.6 * poxMult;
+    }
+
+    a.energy -= drain;
+
+    // Feeding
+    if (safeGrid(a.r, a.c) === T_FOOD) {
+      a.energy += s.energyEff * foodMult * 4;
+    }
+    // Shelter bonus
+    a.sheltered = (safeGrid(a.r, a.c) === T_SHELTER || safeGrid(a.r, a.c) === T_TREE);
+    if (a.sheltered) a.energy += 0.3; // rest bonus
+
+    a.energy = Math.min(a.energy, s.maxEnergy);
+
+    // Death by starvation
+    if (a.energy <= 0) {
+      a.alive = false;
+      if (a.species === RED) totalDeaths[RED]++;
+      if (a.species === GREY) totalDeaths[GREY]++;
+    }
+  }
+
+  // ---- Predation ----
+  for (const pred of agents) {
+    if (!pred.alive) continue;
+    if (pred.species !== FOX && pred.species !== HAWK) continue;
+    const key = `${pred.r},${pred.c}`;
+    const cell = cellMap[key] || [];
+    for (const prey of cell) {
+      if (!prey.alive) continue;
+      if (prey.species !== RED && prey.species !== GREY) continue;
+      // Fox hunts ground; hawk hunts open
+      if (pred.species === HAWK && prey.sheltered) continue; // can't catch sheltered
+      const stealthSave = SPECIES_STATS[prey.species].stealth;
+      // Woodland gives stealth bonus (dense cover); urban has none
+      const envBonus = currentEnv === 'woodland' ? 0.18 : 0;
+      // Sheltered animals are much harder to catch regardless of environment
+      const shelterBonus = prey.sheltered ? 0.45 : 0;
+      const catchChance = Math.max(0, 1 - stealthSave - envBonus - shelterBonus);
+      if (Math.random() < catchChance) {
+        prey.alive = false;
+        pred.energy += 6;
+        killsThisTurn++;
+        if (prey.species === RED) totalDeaths[RED]++;
+        if (prey.species === GREY) totalDeaths[GREY]++;
+      }
+    }
+  }
+
+  // ---- Reproduction ----
+  for (const a of agents) {
+    if (!a.alive) continue;
+    a.reproTimer++;
+    const s = SPECIES_STATS[a.species];
+    const rateBonus = currentEnv === 'woodland' && a.species === RED ? ENVS[currentEnv].redBonus : 1.0;
+    if (a.reproTimer >= s.reproRate / rateBonus && a.energy > s.maxEnergy * 0.55) {
+      a.reproTimer = 0;
+      // Only reproduce if population not too large (cap)
+      const sp = a.species;
+      const count = agents.filter(x => x.alive && x.species === sp).length;
+      const cap = sp === FOX || sp === HAWK ? 12 : 60;
+      if (count < cap) {
+        const { r, c } = randomEmptyCell();
+        newAgents.push(makeAgent(sp, r, c));
+        if (sp === RED) totalBirths[RED]++;
+        if (sp === GREY) totalBirths[GREY]++;
+      }
+    }
+  }
+
+  // ---- Direct food competition: grey wins on same tile ----
+  const squirrelCells = {};
+  for (const a of agents) {
+    if (!a.alive) continue;
+    if (a.species !== RED && a.species !== GREY) continue;
+    const key = `${a.r},${a.c}`;
+    if (!squirrelCells[key]) squirrelCells[key] = [];
+    squirrelCells[key].push(a);
+  }
+  for (const [key, group] of Object.entries(squirrelCells)) {
+    if (group.length < 2) continue;
+    const reds  = group.filter(a => a.species === RED);
+    const greys = group.filter(a => a.species === GREY);
+    if (reds.length && greys.length) {
+      // Grey dominates contested food tiles — strength varies by environment
+      const compChance = ENVS[currentEnv].compChance ?? 0.65;
+      const compDrain  = ENVS[currentEnv].compDrain  ?? 1.5;
+      for (const r of reds) {
+        if (Math.random() < compChance) r.energy -= compDrain;
+      }
+    }
+  }
+
+  // ---- Sporadic food regrowth ----
+  if (Math.random() < 0.1) {
+    const r = Math.floor(Math.random() * ROWS);
+    const c = Math.floor(Math.random() * COLS);
+    if (inBounds(r, c) && grid[r][c] === T_OPEN) grid[r][c] = T_FOOD;
+  }
+
+  agents = agents.filter(a => a.alive);
+  agents.push(...newAgents);
+
+  // Record history
+  for (const sp of [RED, GREY, FOX, HAWK]) {
+    popHistory[sp].push(agents.filter(a => a.species === sp).length);
+  }
+
+  updateStats();
+  drawGrid();
+  drawChart();
+}
+
+// ── Grid safety helpers ──────────────────────────────────────────────────────
+const TILE_CAPACITY = { [T_OPEN]: 2, [T_FOOD]: 2, [T_SHELTER]: 3, [T_TREE]: 0 };
+function inBounds(r, c) { return r >= 0 && r < ROWS && c >= 0 && c < COLS; }
+function safeGrid(r, c) { return inBounds(r, c) ? grid[r][c] : T_TREE; }
+function clampAgent(a) {
+  a.r = Math.max(0, Math.min(ROWS - 1, a.r));
+  a.c = Math.max(0, Math.min(COLS - 1, a.c));
+}
+function gridReady() { return Array.isArray(grid) && grid.length === ROWS && Array.isArray(grid[0]); }
+
+function moveTowardsPrey(pred, cellMap) {
+  // Find nearest prey
+  let nearest = null, bestDist = Infinity;
+  for (const a of agents) {
+    if (!a.alive) continue;
+    if (a.species !== RED && a.species !== GREY) continue;
+    if (pred.species === HAWK && a.sheltered) continue;
+    const d = Math.abs(a.r - pred.r) + Math.abs(a.c - pred.c);
+    if (d < bestDist) { bestDist = d; nearest = a; }
+  }
+  if (!nearest) { randomStep(pred); return; }
+  stepToward(pred, nearest.r, nearest.c);
+}
+
+function moveSquirrel(sq, cellMap) {
+  // Find nearest food or shelter
+  let bestScore = -Infinity, bestR = sq.r, bestC = sq.c;
+  const scan = 5;
+  for (let dr = -scan; dr <= scan; dr++) {
+    for (let dc = -scan; dc <= scan; dc++) {
+      const nr = sq.r + dr, nc = sq.c + dc;
+      if (!inBounds(nr, nc)) continue;
+      if (grid[nr][nc] === T_TREE) continue;
+      let score = 0;
+      if (grid[nr][nc] === T_FOOD) score += 10 - Math.abs(dr) - Math.abs(dc);
+      if (grid[nr][nc] === T_SHELTER) score += 5 - Math.abs(dr) - Math.abs(dc) * 0.5;
+      if (sq.energy < SPECIES_STATS[sq.species].maxEnergy * 0.4) score += grid[nr][nc] === T_FOOD ? 5 : 0;
+      if (score > bestScore) { bestScore = score; bestR = nr; bestC = nc; }
+    }
+  }
+  stepToward(sq, bestR, bestC);
+}
+
+function stepToward(a, tr, tc) {
+  const speed = Math.round(SPECIES_STATS[a.species].speed);
+  for (let i = 0; i < speed; i++) {
+    const dr = tr - a.r, dc = tc - a.c;
+    if (dr === 0 && dc === 0) break;
+    let nr = a.r, nc = a.c;
+    if (Math.abs(dr) >= Math.abs(dc)) nr += Math.sign(dr);
+    else nc += Math.sign(dc);
+    if (inBounds(nr, nc) && grid[nr][nc] !== T_TREE) {
+      a.r = nr; a.c = nc;
+    } else break;
+  }
+  clampAgent(a);
+}
+
+function randomStep(a) {
+  const dirs = [[-1,0],[1,0],[0,-1],[0,1]];
+  for (let i = dirs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [dirs[i], dirs[j]] = [dirs[j], dirs[i]];
+  }
+  for (const [dr, dc] of dirs) {
+    const nr = a.r + dr, nc = a.c + dc;
+    if (inBounds(nr, nc) && grid[nr][nc] !== T_TREE) {
+      a.r = nr; a.c = nc;
+      break;
+    }
+  }
+  clampAgent(a);
+}
+
+// ─────────────────────────────────────────────
+//  DRAWING
+// ─────────────────────────────────────────────
+const TILE_COLORS = {
+  [T_OPEN]:    '#7a9e6e',
+  [T_FOOD]:    '#1a7a3a',  // dark green base for food tiles
+  [T_SHELTER]: '#8d6e63',
+  [T_TREE]:    '#2d5a27',
+};
+
+const AGENT_COLORS = {
+  [RED]:  '#c0392b',
+  [GREY]: '#909090',
+  [FOX]:  '#e67e22',
+  [HAWK]: '#8e44ad',
+};
+
+// Shape-based drawing — no emoji, renders on all browsers
+// Each function takes (ctx, cx, cy, size)
+const AGENT_DRAW = {
+  [RED]: (ctx, cx, cy, sz) => {
+    // Red squirrel: reddish-brown body with bushy tail curve
+    const s = sz * 0.42;
+    // Body
+    ctx.fillStyle = '#c0392b';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 1, s * 0.7, s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Head
+    ctx.fillStyle = '#c0392b';
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.35, cy - s * 0.6, s * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+    // Ear tufts (red squirrel characteristic)
+    ctx.fillStyle = '#922b21';
+    ctx.beginPath();
+    ctx.moveTo(cx + s * 0.1, cy - s * 1.05);
+    ctx.lineTo(cx + s * 0.28, cy - s * 1.45);
+    ctx.lineTo(cx + s * 0.48, cy - s * 1.05);
+    ctx.fill();
+    // Bushy tail
+    ctx.strokeStyle = '#e74c3c';
+    ctx.lineWidth = s * 0.55;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.3, cy + s * 0.4);
+    ctx.quadraticCurveTo(cx - s * 1.1, cy - s * 0.2, cx - s * 0.5, cy - s * 0.9);
+    ctx.stroke();
+    // Eye
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.55, cy - s * 0.7, s * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.58, cy - s * 0.72, s * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+  },
+  [GREY]: (ctx, cx, cy, sz) => {
+    // Grey squirrel: stockier, grey, no ear tufts
+    const s = sz * 0.42;
+    // Tail
+    ctx.strokeStyle = '#bdc3c7';
+    ctx.lineWidth = s * 0.6;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.3, cy + s * 0.4);
+    ctx.quadraticCurveTo(cx - s * 1.1, cy - s * 0.1, cx - s * 0.4, cy - s * 0.8);
+    ctx.stroke();
+    // Body
+    ctx.fillStyle = '#7f8c8d';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 1, s * 0.8, s, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Head (rounder, no tufts)
+    ctx.fillStyle = '#7f8c8d';
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.35, cy - s * 0.65, s * 0.58, 0, Math.PI * 2);
+    ctx.fill();
+    // Round ears
+    ctx.fillStyle = '#95a5a6';
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.15, cy - s * 1.1, s * 0.22, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.5, cy - s * 1.1, s * 0.22, 0, Math.PI * 2);
+    ctx.fill();
+    // Eye
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.55, cy - s * 0.72, s * 0.18, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.58, cy - s * 0.74, s * 0.1, 0, Math.PI * 2);
+    ctx.fill();
+  },
+  [FOX]: (ctx, cx, cy, sz) => {
+    // Fox: orange with pointed ears and white chest
+    const s = sz * 0.42;
+    // Tail
+    ctx.strokeStyle = '#e67e22';
+    ctx.lineWidth = s * 0.5;
+    ctx.lineCap = 'round';
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.5, cy + s * 0.5);
+    ctx.quadraticCurveTo(cx - s * 1.3, cy + s * 0.3, cx - s * 0.9, cy - s * 0.5);
+    ctx.stroke();
+    // Tail tip white
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = s * 0.25;
+    ctx.beginPath();
+    ctx.moveTo(cx - s * 0.92, cy - s * 0.4);
+    ctx.lineTo(cx - s * 0.9, cy - s * 0.55);
+    ctx.stroke();
+    // Body
+    ctx.fillStyle = '#e67e22';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + 2, s * 0.75, s * 0.9, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Chest
+    ctx.fillStyle = '#f9e4c8';
+    ctx.beginPath();
+    ctx.ellipse(cx + s * 0.1, cy + s * 0.2, s * 0.35, s * 0.45, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Head
+    ctx.fillStyle = '#e67e22';
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.3, cy - s * 0.7, s * 0.55, 0, Math.PI * 2);
+    ctx.fill();
+    // Pointed ears
+    ctx.fillStyle = '#c0392b';
+    ctx.beginPath();
+    ctx.moveTo(cx + s * 0.05, cy - s * 1.05);
+    ctx.lineTo(cx + s * 0.18, cy - s * 1.5);
+    ctx.lineTo(cx + s * 0.38, cy - s * 1.05);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx + s * 0.45, cy - s * 1.05);
+    ctx.lineTo(cx + s * 0.6, cy - s * 1.45);
+    ctx.lineTo(cx + s * 0.72, cy - s * 1.05);
+    ctx.fill();
+    // Snout
+    ctx.fillStyle = '#f9e4c8';
+    ctx.beginPath();
+    ctx.ellipse(cx + s * 0.7, cy - s * 0.65, s * 0.3, s * 0.2, 0.3, 0, Math.PI * 2);
+    ctx.fill();
+    // Eye
+    ctx.fillStyle = '#fff';
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.42, cy - s * 0.82, s * 0.16, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.44, cy - s * 0.84, s * 0.09, 0, Math.PI * 2);
+    ctx.fill();
+  },
+  [HAWK]: (ctx, cx, cy, sz) => {
+    // Sparrowhawk: wings spread, brown/purple tones
+    const s = sz * 0.42;
+    // Wings
+    ctx.fillStyle = '#6c3483';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.bezierCurveTo(cx - s * 0.5, cy - s * 0.3, cx - s * 1.4, cy + s * 0.2, cx - s * 1.5, cy + s * 0.6);
+    ctx.bezierCurveTo(cx - s * 1.0, cy + s * 0.4, cx - s * 0.3, cy + s * 0.5, cx, cy + s * 0.3);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.bezierCurveTo(cx + s * 0.5, cy - s * 0.3, cx + s * 1.4, cy + s * 0.2, cx + s * 1.5, cy + s * 0.6);
+    ctx.bezierCurveTo(cx + s * 1.0, cy + s * 0.4, cx + s * 0.3, cy + s * 0.5, cx, cy + s * 0.3);
+    ctx.fill();
+    // Wing highlights
+    ctx.fillStyle = '#8e44ad';
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + s * 0.1);
+    ctx.bezierCurveTo(cx - s * 0.4, cy - s * 0.1, cx - s * 1.0, cy + s * 0.3, cx - s * 1.1, cy + s * 0.55);
+    ctx.bezierCurveTo(cx - s * 0.7, cy + s * 0.35, cx - s * 0.2, cy + s * 0.4, cx, cy + s * 0.25);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.moveTo(cx, cy + s * 0.1);
+    ctx.bezierCurveTo(cx + s * 0.4, cy - s * 0.1, cx + s * 1.0, cy + s * 0.3, cx + s * 1.1, cy + s * 0.55);
+    ctx.bezierCurveTo(cx + s * 0.7, cy + s * 0.35, cx + s * 0.2, cy + s * 0.4, cx, cy + s * 0.25);
+    ctx.fill();
+    // Body
+    ctx.fillStyle = '#5b2c6f';
+    ctx.beginPath();
+    ctx.ellipse(cx, cy + s * 0.1, s * 0.3, s * 0.55, 0, 0, Math.PI * 2);
+    ctx.fill();
+    // Head
+    ctx.fillStyle = '#5b2c6f';
+    ctx.beginPath();
+    ctx.arc(cx, cy - s * 0.45, s * 0.32, 0, Math.PI * 2);
+    ctx.fill();
+    // Beak
+    ctx.fillStyle = '#f39c12';
+    ctx.beginPath();
+    ctx.moveTo(cx + s * 0.28, cy - s * 0.45);
+    ctx.lineTo(cx + s * 0.55, cy - s * 0.35);
+    ctx.lineTo(cx + s * 0.28, cy - s * 0.3);
+    ctx.fill();
+    // Eye
+    ctx.fillStyle = '#f39c12';
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.15, cy - s * 0.5, s * 0.13, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#111';
+    ctx.beginPath();
+    ctx.arc(cx + s * 0.17, cy - s * 0.52, s * 0.07, 0, Math.PI * 2);
+    ctx.fill();
+  },
+};
+
+function drawGrid() {
+  if (!gridReady()) return;
+  const canvas = document.getElementById('gridCanvas');
+  const ctx = canvas.getContext('2d');
+  const W = COLS * CELL, H = ROWS * CELL;
+  canvas.width = W; canvas.height = H;
+
+  // Draw tiles
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      const t = grid[r][c];
+      const x = c * CELL, y = r * CELL;
+      ctx.fillStyle = TILE_COLORS[t];
+      ctx.fillRect(x, y, CELL, CELL);
+      ctx.strokeStyle = 'rgba(0,0,0,0.08)';
+      ctx.strokeRect(x, y, CELL, CELL);
+
+      // Food tile: highlight + acorn icon
+      if (t === T_FOOD) {
+        ctx.fillStyle = 'rgba(255,220,50,0.22)';
+        ctx.fillRect(x+1, y+1, CELL-2, CELL-2);
+        const ax = x + CELL/2, ay = y + CELL/2;
+        ctx.fillStyle = '#c8860a';
+        ctx.beginPath();
+        ctx.ellipse(ax, ay + 2, 4, 5, 0, 0, Math.PI*2);
+        ctx.fill();
+        ctx.fillStyle = '#6d4c1f';
+        ctx.beginPath();
+        ctx.ellipse(ax, ay - 2, 5, 3, 0, 0, Math.PI*2);
+        ctx.fill();
+        ctx.strokeStyle = '#6d4c1f';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(ax, ay - 5);
+        ctx.lineTo(ax, ay - 7.5);
+        ctx.stroke();
+      }
+
+      // Shelter tile: den entrance arch
+      if (t === T_SHELTER) {
+        const sx = x + CELL/2, sy = y + CELL/2 + 1;
+        ctx.fillStyle = '#4e342e';
+        ctx.beginPath();
+        ctx.arc(sx, sy, 6, Math.PI, 0);
+        ctx.rect(sx - 6, sy, 12, 4);
+        ctx.fill();
+        ctx.fillStyle = '#0d0000';
+        ctx.beginPath();
+        ctx.arc(sx, sy, 4, Math.PI, 0);
+        ctx.fill();
+      }
+
+      // Tree: darker overlay
+      if (t === T_TREE) {
+        ctx.fillStyle = 'rgba(0,0,0,0.22)';
+        ctx.fillRect(x+2, y+2, CELL-4, CELL-4);
+      }
+    }
+  }
+
+  // Draw each agent at its smoothly interpolated pixel position
+  for (const a of agents) {
+    drawAgent(ctx, a, a.px, a.py, CELL);
+  }
+
+  // Season indicator
+  const seasons = ['Spring', 'Summer', 'Autumn', 'Winter'];
+  const seasonColors = ['#a8e6a0', '#f9e04b', '#e8a050', '#c8dff0'];
+  if (seasonOn) {
+    ctx.fillStyle = 'rgba(0,0,0,0.55)';
+    ctx.beginPath();
+    ctx.roundRect(W - 112, 6, 106, 22, 11);
+    ctx.fill();
+    ctx.fillStyle = seasonColors[season];
+    ctx.font = 'bold 12px Georgia, serif';
+    ctx.textAlign = 'right';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(seasons[season], W - 10, 17);
+  }
+}
+
+function drawAgent(ctx, a, cx, cy, cellSize) {
+  ctx.save();
+  // Ground shadow
+  ctx.fillStyle = 'rgba(0,0,0,0.25)';
+  ctx.beginPath();
+  ctx.ellipse(cx, cy + cellSize * 0.38, cellSize * 0.3, cellSize * 0.1, 0, 0, Math.PI*2);
+  ctx.fill();
+  // Draw the species-specific shape
+  AGENT_DRAW[a.species](ctx, cx, cy, cellSize);
+  ctx.restore();
+}
+
+// ─────────────────────────────────────────────
+//  CHART (hand-rolled canvas chart)
+// ─────────────────────────────────────────────
+function drawChart() {
+  const canvas = document.getElementById('popChart');
+  const ctx = canvas.getContext('2d');
+  const W = canvas.offsetWidth || 400;
+  const H = 130;
+  canvas.width = W; canvas.height = H;
+
+  ctx.fillStyle = 'rgba(0,0,0,0.3)';
+  ctx.fillRect(0, 0, W, H);
+
+  const maxPop = Math.max(
+    60,
+    ...Object.values(popHistory).flat()
+  );
+
+  const pad = { top: 10, bottom: 20, left: 30, right: 10 };
+  const chartW = W - pad.left - pad.right;
+  const chartH = H - pad.top - pad.bottom;
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+  for (let i = 0; i <= 4; i++) {
+    const y = pad.top + (chartH / 4) * i;
+    ctx.beginPath(); ctx.moveTo(pad.left, y); ctx.lineTo(W - pad.right, y); ctx.stroke();
+    ctx.fillStyle = 'rgba(255,255,255,0.3)';
+    ctx.font = '9px sans-serif'; ctx.textAlign = 'right';
+    ctx.fillText(Math.round(maxPop - (maxPop/4)*i), pad.left - 3, y + 3);
+  }
+
+  const species = [RED, GREY, FOX, HAWK];
+  const labels = {[RED]:'Red',[GREY]:'Grey',[FOX]:'Fox',[HAWK]:'Hawk'};
+
+  for (const sp of species) {
+    const hist = popHistory[sp];
+    if (hist.length < 2) continue;
+    ctx.strokeStyle = CHART_COLORS[sp];
+    ctx.lineWidth = 2;
+    ctx.shadowColor = CHART_COLORS[sp];
+    ctx.shadowBlur = 4;
+    ctx.beginPath();
+    for (let i = 0; i < hist.length; i++) {
+      const x = pad.left + (i / Math.max(hist.length - 1, 1)) * chartW;
+      const y = pad.top + chartH - (hist[i] / maxPop) * chartH;
+      i === 0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y);
+    }
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+  }
+
+  // Legend
+  let lx = pad.left;
+  ctx.font = 'bold 9px sans-serif';
+  for (const sp of species) {
+    ctx.fillStyle = CHART_COLORS[sp];
+    ctx.fillRect(lx, H - 12, 10, 8);
+    ctx.fillStyle = 'rgba(255,255,255,0.7)';
+    ctx.fillText(labels[sp], lx + 13, H - 5);
+    lx += 50;
+  }
+
+  ctx.lineWidth = 1;
+}
+
+// ─────────────────────────────────────────────
+//  STATS
+// ─────────────────────────────────────────────
+function updateStats() {
+  const counts = {};
+  for (const sp of [RED, GREY, FOX, HAWK]) {
+    counts[sp] = agents.filter(a => a.species === sp).length;
+  }
+  document.getElementById('statRed').textContent = counts[RED];
+  document.getElementById('statGrey').textContent = counts[GREY];
+  document.getElementById('statRedBirth').textContent = totalBirths[RED];
+  document.getElementById('statRedDeath').textContent = totalDeaths[RED];
+  document.getElementById('statGreyBirth').textContent = totalBirths[GREY];
+  document.getElementById('statGreyDeath').textContent = totalDeaths[GREY];
+  document.getElementById('statFox').textContent = counts[FOX];
+  document.getElementById('statHawk').textContent = counts[HAWK];
+  document.getElementById('statKills').textContent = killsThisTurn;
+  document.getElementById('genBadge').textContent = `Turn ${turn}  ${seasonOn ? ['[Spring]','[Summer]','[Autumn]','[Winter]'][season] : ''}`;
+
+  // Info box
+  const info = document.getElementById('infoBox');
+  if (counts[RED] === 0 && counts[GREY] > 0) {
+    info.innerHTML = '<strong>🔴 Red squirrels have gone locally extinct!</strong> Grey squirrels now dominate. This mirrors real UK woodland.';
+    info.style.borderColor = '#e74c3c';
+  } else if (counts[GREY] === 0 && counts[RED] > 0) {
+    info.innerHTML = '<strong>🌿 Red squirrels are thriving!</strong> In this habitat the reds outcompeted the greys — just like in ancient Scottish pinewoods.';
+    info.style.borderColor = '#27ae60';
+  } else if (turn > 0 && turn % 20 === 0) {
+    const hints = [
+      `Greys have ${Math.round(counts[GREY]/(counts[RED]||1)*100)}% more individuals than reds right now.`,
+      `Season: <strong>${['Spring','Summer','Autumn','Winter'][season]}</strong> — ${['food is growing','food is plentiful','food is getting scarce','food is very scarce'][season]}.`,
+      `Reds use stealth to avoid predators; greys rely on speed. Watch who gets caught!`,
+      `Squirrelpox proximity stress is ${poxOn ? 'active' : 'off'} — try toggling it to see the difference.`,
+      `Try changing environment to Urban Fringe — watch what happens to the reds.`,
+    ];
+    info.innerHTML = hints[Math.floor(turn / 20) % hints.length];
+    info.style.borderColor = 'var(--moss)';
+  }
+}
+
+// ─────────────────────────────────────────────
+//  LOOP
+// ─────────────────────────────────────────────
+function getInterval() {
+  const speed = parseInt(document.getElementById('speedSlider').value);
+  return Math.round(800 / speed);
+}
+
+// ── Smooth render loop (decoupled from sim tick) ──
+let rafId = null;
+function lerp(a, b, t) { return a + (b - a) * t; }
+
+function renderFrame() {
+  if (gridReady()) {
+    for (const a of agents) {
+      a.px = lerp(a.px, a.targetPx, 0.22);
+      a.py = lerp(a.py, a.targetPy, 0.22);
+    }
+    drawGrid();
+  }
+  rafId = requestAnimationFrame(renderFrame);
+}
+function startRender() { if (!rafId) rafId = requestAnimationFrame(renderFrame); }
+function stopRender()  { if (rafId) { cancelAnimationFrame(rafId); rafId = null; } drawGrid(); }
+
+function runLoop() {
+  if (!running) return;
+  step();
+  loopTimeout = setTimeout(runLoop, getInterval());
+}
+
+function startSim() {
+  running = true;
+  startRender();
+  runLoop();
+}
+function pauseSim() {
+  running = false;
+  clearTimeout(loopTimeout);
+  stopRender();
+}
+
+function resetSim() {
+  pauseSim();
+  turn = 0; season = 0;
+  currentEnv = document.getElementById('envSelect').value;
+  initGrid(currentEnv);
+  initAgents();
+  initPopHistory();
+  drawGrid();
+  drawChart();
+  updateStats();
+  document.getElementById('genBadge').textContent = 'Turn 0';
+  document.getElementById('infoBox').innerHTML = 'Press <strong>Run</strong> to start the simulation.';
+  document.getElementById('infoBox').style.borderColor = 'var(--moss)';
+}
+
+// ─────────────────────────────────────────────
+//  UI BINDINGS
+// ─────────────────────────────────────────────
+function bindSlider(id, labelId) {
+  const el = document.getElementById(id);
+  const lbl = document.getElementById(labelId);
+  el.addEventListener('input', () => { lbl.textContent = el.value; });
+}
+bindSlider('redSlider', 'redVal');
+bindSlider('greySlider', 'greyVal');
+bindSlider('foxSlider', 'foxVal');
+bindSlider('hawkSlider', 'hawkVal');
+
+document.getElementById('speedSlider').addEventListener('input', function() {
+  document.getElementById('speedLabel').textContent = this.value;
+});
+
+document.getElementById('envSelect').addEventListener('change', function() {
+  document.getElementById('envLabel').textContent = ENVS[this.value].name;
+});
+
+document.getElementById('runBtn').addEventListener('click', startSim);
+document.getElementById('pauseBtn').addEventListener('click', pauseSim);
+document.getElementById('resetBtn').addEventListener('click', resetSim);
+
+function bindToggle(id, setter) {
+  const el = document.getElementById(id);
+  el.addEventListener('click', () => {
+    el.classList.toggle('on');
+    setter(el.classList.contains('on'));
+  });
+}
+bindToggle('poxToggle', v => { poxOn = v; });
+bindToggle('seasonToggle', v => { seasonOn = v; });
+
+// ─────────────────────────────────────────────
+//  BOOT
+// ─────────────────────────────────────────────
+resetSim();
+</script>
+</body>
+</html>
